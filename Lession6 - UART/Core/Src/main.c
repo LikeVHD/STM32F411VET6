@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -38,6 +39,10 @@
 #define DR				(*((uint32_t*)(0x40004404)))	//
 #define SR				(*((uint32_t*)(0x40004400)))	//
 
+// Define the NVIC registers
+#define NVIC_BASE		(*((uint32_t*)(0xE000E100)))	//
+#define NVIC_ISER0		(*((uint32_t*)(NVIC_BASE + 0x00)))	//
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -55,7 +60,7 @@
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
-
+char chrRXBuf[32];
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -80,6 +85,21 @@ void uartSend1Byte(uint8_t data)
 	DR = data;
 	while (((SR >> 6)&1) != 1);
 
+}
+
+void uartRecvByte(char *buff, int size)
+{
+	/*
+	 * To do:
+	 * 1. Read bit RXNE (bit 5 in Status register (USART_SR)).
+	 *
+	 */
+
+	for (int i = 0; i < size; i++)
+	{
+		while(((SR >> 5) & 1) == 0); // Cho o day khi nhan du du lieu (bit RXNE duoc set len 1)
+			buff[i] = DR;
+	}
 }
 /* USER CODE END 0 */
 
@@ -119,13 +139,19 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   uart2_init();
   uint8_t hello_msg[] = "hello\r\n";
+
+
   while (1)
-  {
+ {
     /* USER CODE END WHILE */
-	  for (uint8_t i = 0; i < sizeof(hello_msg) - 1; ++i) {
-		  uartSend1Byte(hello_msg[i]);
-	}
-	  HAL_Delay(500);
+//	  for (uint8_t i = 0; i < sizeof(hello_msg) - 1; ++i) {
+//		  uartSend1Byte(hello_msg[i]);
+//	}
+//	  HAL_Delay(500);
+
+//	  uartRecvByte(chrRXBuf, sizeof(chrRXBuf));
+
+	 // Enable the UART receive interrupt
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

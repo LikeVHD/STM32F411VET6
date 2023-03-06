@@ -62,8 +62,11 @@
 #define GPIOA_AFRL		(*((uint32_t*)(0x40020000 | 0x20)))	// GPIO alternate function low register
 #define CR1				(*((uint32_t*)(0x4000440C)))		//
 #define BRR				(*((uint32_t*)(0x40004408)))		//
-#define DR				(*((uint32_t*)(0x40004404)))		//
-#define SR				(*((uint32_t*)(0x40004400)))		//
+
+// Define the USART2 registers
+#define USART2_BASE		(*((uint32_t*)(0x40004400)))
+#define USART2_DR		(*((uint32_t*)(USART2_BASE + 0x04)))//
+#define USART2_SR		(*((uint32_t*)(USART2_BASE + 0x00)))//
 //-------------------------------------------------------------
 // DINH NGHIA CAC THANH NGAT NGOAI
 //-------------------------------------------------------------
@@ -97,6 +100,7 @@ void exti0Init(void);
 void ISR_EXTI0(void);
 void uart2_init(void);
 void uartSend1Byte(uint8_t);
+void uartRecvByte(char*, int)
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -166,8 +170,15 @@ void ISR_EXTI0()
 }
 
 //-------------------------------------------------------------
-// UART2
+// UART2 INIT
 //-------------------------------------------------------------
+/*
+ * Cac viec can lam de khoi tao UART2:
+ * 1. Chon che do alternate cua chan GPIO.
+ * 2. Chon baudrate.
+ * 3. Khoi tao frame, stop bit, parity bit.
+ * 4. Chon che do (Tx hay Rx hay ca 2).
+ */
 void uart2_init()
 {
 	__HAL_RCC_GPIOA_CLK_ENABLE();		// Enable clock for GPIOD
@@ -185,11 +196,31 @@ void uart2_init()
 //-------------------------------------------------------------
 void uartSend1Byte(uint8_t data)
 {
-	while (((SR >> 7)&1) != 1);
-	DR = data;
-	while (((SR >> 6)&1) != 1);
+	while (((USART2_SR >> 7)&1) != 1);
+	USART2_DR = data;
+	while (((USART2_SR >> 6)&1) != 1);
 }
 
+//-------------------------------------------------------------
+// UART RECIVE DATA
+//-------------------------------------------------------------
+/*
+ * Truyen vao dia chi nhan du lieu va kich thuoc du lieu muon nhan
+ */
+void uartRecvByte(char *buff, int size)
+{
+	/*
+	 * To do:
+	 * 1. Read bit RXNE (bit 5 in Status register (USART_SR)).
+	 *
+	 */
+
+	for (int i = 0; i < size; i++)
+	{
+		while(((USART2_SR >> 5) & 1) == 0); // Cho o day khi nhan du du lieu (bit RXNE duoc set len 1)
+			buff[i] = DR;
+	}
+}
 /* USER CODE END 0 */
 
 /**
