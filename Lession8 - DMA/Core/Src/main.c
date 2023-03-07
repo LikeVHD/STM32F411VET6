@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -28,22 +27,25 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-/* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define DMA1BASE 		(*((uint32_t*)(0x40026000)))
+#define S5CR	 		(*((uint32_t*)(DMA1BASE + 0x10 + 0x18 * 5))) // Stream 5 Control register
+#define S5NDTR	 		(*((uint32_t*)(DMA1BASE + 0x14 + 0x18 * 5))) // DMA stream 5 number of data register
+#define S5PAR	 		(*((uint32_t*)(DMA1BASE + 0x18 + 0x18 * 5))) // Stream 5 Control register
+#define S5M0AR	 		(*((uint32_t*)(DMA1BASE + 0x1C + 0x18 * 5))) // Stream 5 Control register
+
+#define BUFFER_SIZE 32
+
 #define GPIOA_MODER		(*((uint32_t*)(0x40020000 | 0x00)))	// GPIO port A mode select register
 #define GPIOA_AFRL		(*((uint32_t*)(0x40020000 | 0x20)))	// GPIO alternate function low register
 #define CR1				(*((uint32_t*)(0x4000440C)))	//
+#define CR3				(*((uint32_t*)(0x40004414)))	//
+
 #define BRR				(*((uint32_t*)(0x40004408)))	//
 #define DR				(*((uint32_t*)(0x40004404)))	//
-#define SR				(*((uint32_t*)(0x40004400)))	//
-
-// Define the NVIC registers
-#define NVIC_BASE		0xE000E100	//
-#define NVIC_ISER1		(*((uint32_t*)(NVIC_BASE + 0x04)))	//
-
-/* USER CODE END PD */
+#define SR				(*((uint32_t*)(0x40004400)))	///* USER CODE END PTD *//* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -53,6 +55,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint8_t Uart2_Rx_Buffer[BUFFER_SIZE];
 
 /* USER CODE END PV */
 
@@ -60,12 +63,23 @@
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
-char chrRXBuf[32];
-uint8_t u8Index = 0;
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+// initialize DMA
+void DMA_Init()
+{
+	__HAL_RCC_DMA1_CLK_ENABLE();
+
+	S5NDTR = sizeof(Uart2_Rx_Buffer);
+	S5PAR = 0x40004404;					// Dia chi nguon (dia chi thanh ghi DR cua uart2)
+	S5M0AR = (uint32_t)Uart2_Rx_Buffer;	// Dia chi dich	(dia chi buffer tren Ram)
+	S5CR |= (0b100 << 25) | (1U << 10); // Chon chanel 4 + tu dong tang dia chi.
+	S5CR |= 1U;							// Stream 5 Enable.
+}
+
 void uart2_init()
 {
 	__HAL_RCC_GPIOA_CLK_ENABLE();		// Enable clock for GPIOD
@@ -77,42 +91,11 @@ void uart2_init()
 	BRR = (104U << 4) | (3U << 0);
 	CR1 |= (1U << 3) | (1U << 2) | (1U << 13);
 
-	CR1 |= (1U << 5);			// Enable RXNEIE bit to general interrupt
-	NVIC_ISER1 |= (1U << 6);	// Enable USART2 reception
+	CR3 |= (1U << 6);
 
 
-}
-
-void uartSend1Byte(uint8_t data)
-{
-	while (((SR >> 7)&1) != 1);
-	DR = data;
-	while (((SR >> 6)&1) != 1);
-
-}
-
-void uartRecvByte(char *buff, int size)
-{
-	/*
-	 * To do:
-	 * 1. Read bit RXNE (bit 5 in Status register (USART_SR)).
-	 *
-	 */
-
-	for (int i = 0; i < size; i++)
-	{
-		while(((SR >> 5) & 1) == 0); // Cho o day khi nhan du du lieu (bit RXNE duoc set len 1)
-			buff[i] = DR;
-	}
-}
-
-
-void USART2_IRQHandler()
-{
-	chrRXBuf[u8Index++] = DR;
-	if (u8Index >= 31U){
-		u8Index = 0;
-	}
+//	CR1 |= (1U << 5);			// Enable RXNEIE bit to general interrupt
+//	NVIC_ISER1 |= (1U << 6);	// Enable USART2 reception
 }
 /* USER CODE END 0 */
 
@@ -150,12 +133,13 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uart2_init();
-//  uint8_t hello_msg[] = "hello\r\n";
+  while (1)
+  {
+    /* USER CODE END WHILE */
 
-
-  while (1);
-
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
 }
 
 /**
