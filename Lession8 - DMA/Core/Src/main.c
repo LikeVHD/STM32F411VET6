@@ -30,13 +30,13 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define DMA1BASE 		(*((uint32_t*)(0x40026000)))
+#define DMA1BASE 		0x40026000
 #define S5CR	 		(*((uint32_t*)(DMA1BASE + 0x10 + 0x18 * 5))) // Stream 5 Control register
 #define S5NDTR	 		(*((uint32_t*)(DMA1BASE + 0x14 + 0x18 * 5))) // DMA stream 5 number of data register
 #define S5PAR	 		(*((uint32_t*)(DMA1BASE + 0x18 + 0x18 * 5))) // Stream 5 Control register
 #define S5M0AR	 		(*((uint32_t*)(DMA1BASE + 0x1C + 0x18 * 5))) // Stream 5 Control register
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE		32
 
 #define GPIOA_MODER		(*((uint32_t*)(0x40020000 | 0x00)))	// GPIO port A mode select register
 #define GPIOA_AFRL		(*((uint32_t*)(0x40020000 | 0x20)))	// GPIO alternate function low register
@@ -128,7 +128,8 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-
+  uart2_init();
+  DMA_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
