@@ -78,6 +78,17 @@
 #define NVIC_ISER0		(*((uint32_t*)(0xE000E100 | 0x00)))	// Interrupt set-enable register 0
 #define VTOR			(*((uint32_t*)(0xE000ED08 | 0x00)))
 
+//-------------------------------------------------------------
+// DINH NGHIA CAC DIA CHI CO BAN CUA SECTOR DE XOA
+//-------------------------------------------------------------
+#define FLASH_CR_PGBit	 			1U	// PG (Program) bit
+#define FLASH_CR_SERBit 			2U	// SER (Sector Erase) bit
+#define FLASH_SECTOR_ADDRESS	((uint32_t)0x08004000)
+
+#define	FLASH_CR 		(*((uint32_t*)0x40023c10))	// Flash control register
+#define	FLASH_SR 		(*((uint32_t*)0x40023c0c))	// Flash status register
+#define	FLASH_KEYR 		(*((uint32_t*)0x40023c04))	// Flash key register
+
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
@@ -100,7 +111,10 @@ void exti0Init(void);
 void ISR_EXTI0(void);
 void uart2_init(void);
 void uartSend1Byte(uint8_t);
-void uartRecvByte(char*, int)
+void uartRecvByte(char*, int);
+void Custom_Flash_Erase_Sector(uint8_t);
+void Custom_Flash_Program(uint32_t, uint8_t);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -221,6 +235,48 @@ void uartRecvByte(char *buff, int size)
 			buff[i] = DR;
 	}
 }
+
+void Custom_Flash_Erase_Sector(uint8_t u8SectorNumber)
+{
+	if ((FLASH_CR_LOCK >> 31) & 1)		// Check LOCK bit
+	{
+		/* Unlock the flash interface */
+		FLASH_KEYR = 0x45670123;
+		FLASH_KEYR = 0xCDEF89AB;
+	}
+	// 1.
+	while ((FLASH_SR_BSY >> 16) & 1);		// Wait until BSY is clean
+	// 2.
+	FLASH_CR |= FLASH_CR_SER;				// Sector erase activated
+	FLASH_CR |= (u8SectorNumber << 3);	// "u8SectorNumber" Erase
+	// 3.
+	FLASH_CR |= FLASH_CR_STRT;				// Start erase bit
+	// 4.
+	while ((FLASH_SR_BSY >> 16) & 1);		// Wait until BSY is clean
+	FLASH_CR &= ~FLASH_CR_SER;				// Sector erase deactivated
+}
+
+void Custom_Flash_Program(uint32_t u32Addr, uint8_t u8Data)
+{
+	if ((FLASH_CR_LOCK >> 31) & 1)		// Kiem tra bit LOCK
+	{
+		// Unlock Flash
+		FLASH_KEYR = 0x45670123;
+		FLASH_KEYR = 0xCDEF89AB;
+	}
+	// 1.
+	while ((FLASH_SR_BSY >> 16) & 1);		// Wait until BSY is clean
+	// 2.
+	FLASH_CR |= FLASH_CR_PG;				// Flash programming activated
+	// 3.
+	uint8_t *pu8Temp = (uint8_t*)u32Addr;
+	*pu8Temp = u8Data;
+	// 4.
+	while ((FLASH_SR_BSY >> 16) & 1);		// Wait until BSY is clean
+	// 2.
+	FLASH_CR &= ~FLASH_CR_PG;				// Flash programming deactivated
+}
+
 /* USER CODE END 0 */
 
 /**

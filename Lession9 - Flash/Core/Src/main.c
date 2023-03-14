@@ -23,11 +23,15 @@
 
 
 /* Private typedef -----------------------------------------------------------*/
-#define SECTOR1			0x08004000
+
+/* Define the base address of the sector to erase */
+#define FLASH_CR_PGBit	 			1U	// PG (Program) bit
+#define FLASH_CR_SERBit 			2U	// SER (Sector Erase) bit
+#define FLASH_SECTOR_ADDRESS	((uint32_t)0x08004000)
 
 #define	FLASH_CR 		(*((uint32_t*)0x40023c10))	// Flash control register
-#define	FLASH_SR 		(*((uint32_t*)0x40023c0c))	// Flash control register
-#define	FLASH_KEYR 		(*((uint32_t*)0x40023c04))	// Flash control register
+#define	FLASH_SR 		(*((uint32_t*)0x40023c0c))	// Flash status register
+#define	FLASH_KEYR 		(*((uint32_t*)0x40023c04))	// Flash key register
 
 /* Private define ------------------------------------------------------------*/
 
@@ -41,47 +45,47 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 void Custom_Flash_Erase_Sector(uint8_t);
 void Custom_Flash_Program(uint32_t, uint8_t);
-/* Private user code ---------------------------------------------------------*/
 
+/* Private user code ---------------------------------------------------------*/
 void Custom_Flash_Erase_Sector(uint8_t u8SectorNumber)
 {
-	if ((FLASH_CR >> 31) & 1)		// Kiem tra bit LOCK
+	if ((FLASH_CR_LOCK >> 31) & 1)		// Check LOCK bit
 	{
-		// Unlock Flash
+		/* Unlock the flash interface */
 		FLASH_KEYR = 0x45670123;
 		FLASH_KEYR = 0xCDEF89AB;
 	}
 	// 1.
-	while ((FLASH_SR >> 16) & 1);		// Wait until BSY is clean
+	while ((FLASH_SR_BSY >> 16) & 1);		// Wait until BSY is clean
 	// 2.
-	FLASH_CR |= (1U << 1);				// Sector erase activated
+	FLASH_CR |= FLASH_CR_SER;				// Sector erase activated
 	FLASH_CR |= (u8SectorNumber << 3);	// "u8SectorNumber" Erase
 	// 3.
-	FLASH_CR |= (1U << 16);				// Start erase bit
+	FLASH_CR |= FLASH_CR_STRT;				// Start erase bit
 	// 4.
-	while ((FLASH_SR >> 16) & 1);		// Wait until BSY is clean
-	FLASH_CR &= ~(1U << 1);				// Sector erase deactivated
+	while ((FLASH_SR_BSY >> 16) & 1);		// Wait until BSY is clean
+	FLASH_CR &= ~FLASH_CR_SER;				// Sector erase deactivated
 }
 
 void Custom_Flash_Program(uint32_t u32Addr, uint8_t u8Data)
 {
-	if ((FLASH_CR >> 31) & 1)		// Kiem tra bit LOCK
+	if ((FLASH_CR_LOCK >> 31) & 1)		// Kiem tra bit LOCK
 	{
 		// Unlock Flash
 		FLASH_KEYR = 0x45670123;
 		FLASH_KEYR = 0xCDEF89AB;
 	}
 	// 1.
-	while ((FLASH_SR >> 16) & 1);		// Wait until BSY is clean
+	while ((FLASH_SR_BSY >> 16) & 1);		// Wait until BSY is clean
 	// 2.
-	FLASH_CR |= (1U << 0);				// Flash programming activated
+	FLASH_CR |= FLASH_CR_PG;				// Flash programming activated
 	// 3.
 	uint8_t *pu8Temp = (uint8_t*)u32Addr;
 	*pu8Temp = u8Data;
 	// 4.
-	while ((FLASH_SR >> 16) & 1);		// Wait until BSY is clean
+	while ((FLASH_SR_BSY >> 16) & 1);		// Wait until BSY is clean
 	// 2.
-	FLASH_CR &= ~(1U << 0);				// Flash programming activated
+	FLASH_CR &= ~FLASH_CR_PG;				// Flash programming deactivated
 }
 /**
   * @brief  The application entry point.
@@ -97,7 +101,7 @@ int main(void)
   MX_GPIO_Init();
 
   Custom_Flash_Erase_Sector(1);
-  Custom_Flash_Program(SECTOR1, '9');
+  Custom_Flash_Program(FLASH_SECTOR_ADDRESS, '9');
 
   while (1)
   {
